@@ -1,0 +1,13 @@
+{
+  "name": "jenkins-node-assessment",
+  "version": "1.0.0",
+  "description": "Node.js Jenkins Docker Compose CI/CD Assessment",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node test.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

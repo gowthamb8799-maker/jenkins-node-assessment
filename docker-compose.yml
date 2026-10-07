@@ -1,0 +1,31 @@
+services:
+  node-app:
+    image: node-cicd-app:${IMAGE_TAG:-latest}
+    container_name: node-cicd-app
+    restart: unless-stopped
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      APP_NAME: ${APP_NAME}
+      PORT: ${PORT}
+
+    volumes:
+      - app_data:/app/data
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/health').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1));"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  app_data:

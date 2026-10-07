@@ -1,0 +1,6 @@
+node_modules/
+.env
+data/
+trivy-report.txt
+.rollback-version
+.last-successful-version
