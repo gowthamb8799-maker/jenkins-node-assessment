@@ -15,7 +15,7 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 app.get("/", (req, res) => {
-    res.status(200).json({
+    res.status(500).json({
         application: APP_NAME,
         message: "Jenkins CI/CD deployment successful",
         status: "running"
