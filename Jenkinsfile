@@ -218,7 +218,7 @@ EOF
                                 echo "Rollback environment:"
                                 cat .env
 
-                                docker compose up -d --force-recreate
+                                IMAGE_TAG=${ROLLBACK_VERSION} docker compose up -d --force-recreate
 
                                 echo "Waiting for rollback application"
 
