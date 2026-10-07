@@ -131,12 +131,16 @@ EOF
             steps {
                 sh '''
                     if [ -f .last-successful-version ]; then
+
                         cp .last-successful-version .rollback-version
 
                         echo "Previous successful version:"
                         cat .rollback-version
+
                     else
+
                         echo "First deployment - no rollback version available"
+
                     fi
                 '''
             }
@@ -149,7 +153,7 @@ EOF
 
                     echo "Deploying version: ${IMAGE_TAG}"
 
-                    docker compose up -d
+                    docker compose up -d --force-recreate
 
                     docker compose ps
                 '''
@@ -164,6 +168,7 @@ EOF
                         script: '''
                             for attempt in $(seq 1 12)
                             do
+
                                 echo "Health check attempt: ${attempt}"
 
                                 if curl \
@@ -171,8 +176,10 @@ EOF
                                   --silent \
                                   http://localhost:3000/health
                                 then
+
                                     echo ""
                                     echo "Application is HEALTHY"
+
                                     exit 0
                                 fi
 
@@ -193,8 +200,12 @@ EOF
 
                         echo "Deployment failed. Attempting rollback."
 
-                        sh '''
-                            if [ -f .rollback-version ]; then
+                        def rollbackStatus = sh(
+                            script: '''
+                                if [ ! -f .rollback-version ]; then
+                                    echo "No previous successful version available"
+                                    exit 1
+                                fi
 
                                 ROLLBACK_VERSION=$(cat .rollback-version)
 
@@ -204,25 +215,52 @@ EOF
                                   "s/^IMAGE_TAG=.*/IMAGE_TAG=${ROLLBACK_VERSION}/" \
                                   .env
 
-                                docker compose up -d
+                                echo "Rollback environment:"
+                                cat .env
 
-                                sleep 15
+                                docker compose up -d --force-recreate
 
-                                curl \
-                                  --fail \
-                                  http://localhost:3000/health
+                                echo "Waiting for rollback application"
 
-                                echo ""
-                                echo "Rollback completed successfully"
+                                for attempt in $(seq 1 12)
+                                do
 
-                            else
-                                echo "No previous successful version available"
-                            fi
-                        '''
+                                    echo "Rollback health check attempt: ${attempt}"
 
-                        error(
-                            "Deployment failed health check. Rollback attempted."
+                                    if curl \
+                                      --fail \
+                                      --silent \
+                                      http://localhost:3000/health
+                                    then
+
+                                        echo ""
+                                        echo "Rollback completed successfully"
+
+                                        exit 0
+                                    fi
+
+                                    sleep 5
+                                done
+
+                                echo "Rollback health check FAILED"
+
+                                docker compose ps
+                                docker compose logs --tail=100
+
+                                exit 1
+                            ''',
+                            returnStatus: true
                         )
+
+                        if (rollbackStatus == 0) {
+                            error(
+                                "New deployment failed. Previous successful version restored."
+                            )
+                        } else {
+                            error(
+                                "New deployment failed and rollback also failed."
+                            )
+                        }
                     }
                 }
             }
